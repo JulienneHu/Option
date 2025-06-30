@@ -51,7 +51,7 @@ if main_page == "Profiles":
 elif main_page == "BlackScholes":
     blackscholes_page = st.sidebar.radio(
         "BlackScholes Pages",
-        ["BlackScholes"]
+        ["BlackScholes", "BlackScholesIndex"]
     )
 elif main_page == "PNL":
     xsens_page = st.sidebar.radio(
@@ -86,6 +86,11 @@ elif main_page == "BlackScholes":
     if blackscholes_page == "BlackScholes":
         # Load 'BlackScholes.py' content
         spec = importlib.util.spec_from_file_location("BlackScholes", "pages/BlackScholes/BlackScholes.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    elif blackscholes_page == "BlackScholesIndex":
+        # Load 'BlackScholesIndex.py' content
+        spec = importlib.util.spec_from_file_location("BlackScholesIndex", "pages/BlackScholes/BlackScholesIndex.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 

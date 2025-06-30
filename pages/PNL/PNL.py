@@ -3,18 +3,18 @@ import pandas as pd
 import yfinance as yf
 import plotly.graph_objects as go
 from datetime import datetime
+import uuid
 from realPrice.OptionPnl import main, calls_or_puts
 from realPrice.realOption import get_realtime_option_price
 from tools.pnl_tools import calculate_pnl, market_open
 
-# Set page configuration
-# st.set_page_config(page_title="Option PNL Tracker", layout="wide")
-st.title("📘 Option PNL")
+# --- Page Config ---
+st.title("📘 Option PNL Tracker")
 
-# Persistent storage for trades
+# --- Persistent Storage ---
 def initialize_trades():
     return pd.DataFrame(columns=[
-        'trade_date', 'symbol', 'strike', 'expiration', 'stock_trade_price', 'effective_delta',
+        'trade_id', 'trade_date', 'symbol', 'strike', 'expiration', 'stock_trade_price', 'effective_delta',
         'call_trade_price', 'call_action_type', 'num_call_contracts', 'put_trade_price',
         'put_action_type', 'num_put_contracts', 'stock_close_price', 'call_close_price',
         'put_close_price', 'daily_pnl', 'change'
@@ -24,7 +24,7 @@ if 'trades' not in st.session_state:
     st.session_state.trades = initialize_trades()
     st.session_state.message_displayed = False
 
-# Input form
+# --- Input Form ---
 with st.form("Trade Input"):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -46,14 +46,22 @@ with st.form("Trade Input"):
 
     submitted = st.form_submit_button("Add Trade")
 
-# Logic after form is submitted
+# --- Logic After Submit ---
 if submitted:
     with st.spinner("Fetching data and adding trade..."):
         option_data = main(symbol, expiration, strike, trade_date)
 
         if option_data is None or option_data.empty:
-            st.warning("No data found or unable to retrieve data.")
+            st.warning("⚠️ No data found or unable to retrieve data.")
         else:
+            trade_id = str(uuid.uuid4())
+
+            # --- Auto-fill using first day’s data ---
+            first_row = option_data.iloc[0]
+            stock_trade_price = round(first_row['stock_close_price'], 2)
+            call_trade_price = round(first_row['call_close_price'], 2)
+            put_trade_price = round(first_row['put_close_price'], 2)
+
             if market_open():
                 options = calls_or_puts(symbol, expiration, strike)
                 if options and len(options) == 2:
@@ -63,24 +71,27 @@ if submitted:
                     option_data.at[option_data.index[-1], 'put_close_price'] = put_ask_price if put_action_type == "sell" else put_bid_price
 
             for _, row in option_data.iterrows():
-                daily_pnl = calculate_pnl(call_action_type, put_action_type,
-                                           num_call_contracts, call_trade_price, row['call_close_price'],
-                                           num_put_contracts, put_trade_price, row['put_close_price'],
-                                           effective_delta, stock_trade_price, row['stock_close_price'])
+                daily_pnl = calculate_pnl(
+                    call_action_type, put_action_type,
+                    num_call_contracts, call_trade_price, row['call_close_price'],
+                    num_put_contracts, put_trade_price, row['put_close_price'],
+                    effective_delta, stock_trade_price, row['stock_close_price']
+                )
                 investment = ((num_call_contracts * call_trade_price) + (num_put_contracts * put_trade_price)) * 100
                 change = round(daily_pnl / investment * 100, 2) if investment != 0 else 0.0
 
                 new_trade = {
+                    'trade_id': trade_id,
                     'trade_date': row['date'].strftime('%Y-%m-%d'),
                     'symbol': symbol,
                     'strike': strike,
                     'expiration': expiration,
                     'stock_trade_price': stock_trade_price,
                     'effective_delta': effective_delta,
-                    'call_trade_price': row['call_close_price'],
+                    'call_trade_price': call_trade_price,
                     'call_action_type': call_action_type,
                     'num_call_contracts': num_call_contracts,
-                    'put_trade_price': row['put_close_price'],
+                    'put_trade_price': put_trade_price,
                     'put_action_type': put_action_type,
                     'num_put_contracts': num_put_contracts,
                     'stock_close_price': round(row['stock_close_price'], 2),
@@ -90,33 +101,21 @@ if submitted:
                     'change': change
                 }
 
-                exists = st.session_state.trades[
-                    (st.session_state.trades['trade_date'] == new_trade['trade_date']) &
-                    (st.session_state.trades['symbol'] == new_trade['symbol']) &
-                    (st.session_state.trades['strike'] == new_trade['strike']) &
-                    (st.session_state.trades['expiration'] == new_trade['expiration']) &
-                    (st.session_state.trades['stock_trade_price'] == new_trade['stock_trade_price']) &
-                    (st.session_state.trades['effective_delta'] == new_trade['effective_delta']) &
-                    (st.session_state.trades['call_trade_price'] == new_trade['call_trade_price']) &
-                    (st.session_state.trades['call_action_type'] == new_trade['call_action_type']) &
-                    (st.session_state.trades['num_call_contracts'] == new_trade['num_call_contracts']) &
-                    (st.session_state.trades['put_trade_price'] == new_trade['put_trade_price']) &
-                    (st.session_state.trades['put_action_type'] == new_trade['put_action_type']) &
-                    (st.session_state.trades['num_put_contracts'] == new_trade['num_put_contracts'])
-                ]
+                st.session_state.trades = pd.concat(
+                    [st.session_state.trades, pd.DataFrame([new_trade])],
+                    ignore_index=True
+                )
 
-                if exists.empty:
-                    st.session_state.trades = pd.concat([st.session_state.trades, pd.DataFrame([new_trade])], ignore_index=True)
-                    if not st.session_state.message_displayed:
-                        st.success("Trade added successfully!")
-                        st.session_state.message_displayed = True
-                else:
-                    st.info("Duplicate trade skipped.")
+            st.success("✅ Trade(s) added successfully with prices auto-filled from first day history.")
 
-# Display and plot trades
+# --- Display and Plot Trades ---
 if not st.session_state.trades.empty:
     st.subheader("📈 Trade PNL Chart")
-    chart_data = st.session_state.trades.copy()
+
+    trade_ids = st.session_state.trades['trade_id'].unique()
+    selected_trade_id = st.selectbox("Select Trade to View", trade_ids)
+
+    chart_data = st.session_state.trades[st.session_state.trades['trade_id'] == selected_trade_id].copy()
     chart_data['trade_date'] = pd.to_datetime(chart_data['trade_date'])
     chart_data = chart_data.sort_values(by='trade_date')
     chart_data['plot_index'] = range(len(chart_data))
@@ -127,7 +126,7 @@ if not st.session_state.trades.empty:
         f"Stock: ${row['stock_close_price']:.2f}<br>"
         f"Call: ${row['call_close_price']:.2f}<br>"
         f"Put: ${row['put_close_price']:.2f}<br>"
-        f"Current PNL: ${row['daily_pnl']:.2f}<br>"
+        f"PNL: ${row['daily_pnl']:.2f}<br>"
         f"Change: {row['change']:.2f}%"
         for _, row in chart_data.iterrows()
     ]
@@ -144,14 +143,14 @@ if not st.session_state.trades.empty:
     ))
 
     fig.update_layout(
-        title="Profit & Loss",
+        title=f"Profit & Loss | {symbol} | Strike: {strike} | Exp: {expiration} | {num_call_contracts} Calls, {num_put_contracts} Puts",
         xaxis=dict(
             tickmode='array',
             tickvals=chart_data['plot_index'],
             ticktext=[d.strftime('%m-%d') for d in chart_data['trade_date']],
             tickangle=45
         ),
-        yaxis_title='Π',
+        yaxis_title='PnL ($)',
         xaxis_title='Date',
         hovermode='closest',
         margin=dict(l=40, r=20, t=40, b=40)

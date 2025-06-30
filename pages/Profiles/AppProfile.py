@@ -102,8 +102,6 @@ elif y_neg.size == 0:
 else:
     pos_str = '∞'
 
-st.markdown(f"**Effective Δ:** {round(100 * effective_delta)}%  ")
-st.markdown(f"**Profit Region:** S ∈ {pos_str}")
 
 # Plot
 fig, ax = plt.subplots(figsize=(10, 6))
