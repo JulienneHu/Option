@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
+import yfinance as yf
 from tools.pnl_tools import calculate_pnl, get_ticker, get_pnl
 
 st.title("📘 Expired Option PNL Tracker")
@@ -19,25 +20,62 @@ if 'trades_df' not in st.session_state:
 with st.form("trade_form"):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        trade_date = st.text_input("Trade Date", '2025-05-08')
+        trade_date_input = st.date_input("Trade Date", datetime(2025, 5, 8))
+        trade_date = trade_date_input.strftime('%Y-%m-%d')
         symbol = st.text_input("Symbol", 'IBM')
         strike = st.number_input("Strike Price", value=280.0, step=1.0, format="%.2f")
     with col2:
-        expiration = st.text_input("Expiration Date", '2025-06-20')
-        stock_trade_price = st.number_input("Stock Trade Price", value=178.0, step=1.0, format="%.2f")
+        expiration_input = st.date_input("Expiration Date", datetime(2025, 6, 20))
+        expiration = expiration_input.strftime('%Y-%m-%d')
+        stock_trade_price = st.number_input("Stock Trade Price", value=0.0, step=1.0, format="%.2f")
         effective_delta = st.number_input("Effective Delta", value=0.0, step=0.01, format="%.2f")
     with col3:
-        call_action_type = st.selectbox("Call Action Type", ["buy", "sell"])
+        call_action_type = st.selectbox("Call Action Type", ['sell', 'buy'])
         num_call_contracts = st.number_input("# Call Contracts", min_value=0, value=1)
-        call_trade_price = st.number_input("Call Trade Price", value=11.0)
+        call_trade_price = st.number_input("Call Trade Price", value=0.0)
     with col4:
-        put_action_type = st.selectbox("Put Action Type", ["buy", "sell"])
+        put_action_type = st.selectbox("Put Action Type", ['sell', 'buy'])
         num_put_contracts = st.number_input("# Put Contracts", min_value=0, value=1)
-        put_trade_price = st.number_input("Put Trade Price", value=12.0)
-    submitted = st.form_submit_button("Add Trade")
+        put_trade_price = st.number_input("Put Trade Price", value=0.0)
+
+    col_submit, col_clear = st.columns([3, 1])
+    submitted = col_submit.form_submit_button("Add Trade")
+    clear_clicked = col_clear.form_submit_button("🗑️ Clear History")
+
+if clear_clicked:
+    st.session_state.trades_df = st.session_state.trades_df.iloc[0:0]
+    st.success("🗑️ History cleared.")
+    st.stop()
 
 if submitted:
+    # Fetch stock open price if input = 0
+    if stock_trade_price == 0.0:
+        try:
+            ticker = yf.Ticker(symbol)
+            next_day = (trade_date_input + timedelta(days=5)).strftime('%Y-%m-%d')
+            df_hist = ticker.history(start=trade_date, end=next_day)
+            if not df_hist.empty:
+                stock_trade_price = round(df_hist['Open'].iloc[0], 2)
+        except Exception as e:
+            st.warning(f"⚠️ Could not fetch stock open price: {e}")
+
     call_ticker, put_ticker = get_ticker(strike, symbol, expiration)
+
+    # Fetch call/put open prices if input = 0
+    if call_trade_price == 0.0 or put_trade_price == 0.0:
+        try:
+            df_options = get_pnl(call_ticker, put_ticker, trade_date, stock_trade_price, effective_delta,
+                                 call_action_type, num_call_contracts, 0,
+                                 put_action_type, num_put_contracts, 0)
+            if call_trade_price == 0.0:
+                open_call = df_options['call_close_price'].iloc[0]
+                call_trade_price = round(open_call, 2)
+            if put_trade_price == 0.0:
+                open_put = df_options['put_close_price'].iloc[0]
+                put_trade_price = round(open_put, 2)
+        except Exception as e:
+            st.warning(f"⚠️ Could not fetch option open prices: {e}")
+
     pnl_data = get_pnl(call_ticker, put_ticker, trade_date, stock_trade_price, effective_delta,
                        call_action_type, num_call_contracts, call_trade_price,
                        put_action_type, num_put_contracts, put_trade_price)
@@ -93,7 +131,7 @@ if submitted:
     else:
         st.warning("⚠️ No data found for given input.")
 
-# Plotting with trade_id selection
+
 # Plotting with trade_id selection
 if not st.session_state.trades_df.empty:
     st.subheader("📈 Trade PNL Chart")

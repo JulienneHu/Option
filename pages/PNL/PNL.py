@@ -28,23 +28,32 @@ if 'trades' not in st.session_state:
 with st.form("Trade Input"):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        trade_date = st.text_input("Trade Date", '2025-06-01')
+        trade_date_input = st.date_input("Trade Date", datetime(2025, 6, 1))
+        trade_date = trade_date_input.strftime('%Y-%m-%d')
         symbol = st.text_input("Symbol", 'IBM')
         strike = st.number_input("Strike Price", value=280.0, step=1.0, format="%.2f")
     with col2:
-        expiration = st.text_input("Expiration Date", '2025-07-18')
+        expiration_input = st.date_input("Expiration Date", datetime(2025, 7, 18))
+        expiration = expiration_input.strftime('%Y-%m-%d')
         stock_trade_price = st.number_input("Stock Trade Price", value=0.0, step=1.0, format="%.2f")
         effective_delta = st.number_input("Effective Delta", value=0.0, step=0.01, format="%.2f")
     with col3:
-        call_action_type = st.selectbox("Call Action Type", ["buy", "sell"])
+        call_action_type = st.selectbox("Call Action Type", ['sell', 'buy'])
         num_call_contracts = st.number_input("Call Contracts", min_value=0, value=2)
-        call_trade_price = st.number_input("Call Trade Price", value=2.79)
+        call_trade_price = st.number_input("Call Trade Price", value=0.0)
     with col4:
-        put_action_type = st.selectbox("Put Action Type", ["buy", "sell"])
+        put_action_type = st.selectbox("Put Action Type", ['sell', 'buy'])
         num_put_contracts = st.number_input("Put Contracts", min_value=0, value=0)
         put_trade_price = st.number_input("Put Trade Price", value=0.0)
 
-    submitted = st.form_submit_button("Add Trade")
+    col_submit, col_clear = st.columns([3, 1])
+    submitted = col_submit.form_submit_button("Add Trade")
+    clear_clicked = col_clear.form_submit_button("🗑️ Clear History")
+
+if clear_clicked:
+    st.session_state.trades = initialize_trades()
+    st.success("🗑️ Trade history cleared successfully.")
+    st.stop()
 
 # --- Logic After Submit ---
 if submitted:
@@ -54,32 +63,42 @@ if submitted:
         if option_data is None or option_data.empty:
             st.warning("⚠️ No data found or unable to retrieve data.")
         else:
-            # Create a deterministic unique ID for the trade
+            first_row = option_data.iloc[0]
+
+            # Auto-fill stock_trade_price
+            if stock_trade_price in [0, None]:
+                try:
+                    ticker = yf.Ticker(symbol)
+                    # end date to be 5 days after trade_date to ensure we get the correct open price
+                    end_date = (datetime.strptime(trade_date, '%Y-%m-%d') + pd.Timedelta(days=5)).strftime('%Y-%m-%d')
+                    df_hist = ticker.history(start=trade_date, end=end_date)
+                    if not df_hist.empty and 'Open' in df_hist.columns:
+                        stock_trade_price = round(df_hist['Open'].iloc[0], 2)
+                except Exception as e:
+                    st.warning(f"⚠️ Unable to fetch stock open price: {e}")
+
+            # Auto-fill call_trade_price
+            if call_trade_price in [0, None]:
+                fr_call_price = first_row.get('call_open_price') or first_row.get('call_close_price')
+                if pd.notna(fr_call_price):
+                    call_trade_price = round(fr_call_price, 2)
+
+            # Auto-fill put_trade_price
+            if put_trade_price in [0, None]:
+                fr_put_price = first_row.get('put_open_price') or first_row.get('put_close_price')
+                if pd.notna(fr_put_price):
+                    put_trade_price = round(fr_put_price, 2)
+
+            # Now create trade_key_display AFTER prices are filled
             trade_key = f"{trade_date}_{expiration}_{call_action_type}_{put_action_type}_{symbol}_{stock_trade_price}_{call_trade_price}_{put_trade_price}_{strike}_{effective_delta}_{num_call_contracts}_{num_put_contracts}"
             trade_id = hashlib.md5(trade_key.encode()).hexdigest()
 
-            # Create a readable display string for context
             trade_key_display = (
                 f"Date: {trade_date} | Exp: {expiration} | Sym: {symbol} | Strike: {strike} | "
                 f"Call: {call_action_type} {num_call_contracts} @ {call_trade_price} | "
                 f"Put: {put_action_type} {num_put_contracts} @ {put_trade_price} | "
                 f"Stock: {stock_trade_price} | Delta: {effective_delta}"
             )
-
-            first_row = option_data.iloc[0]
-            if stock_trade_price in [0, None]:
-                stock_trade_price = round(first_row['stock_close_price'], 2)
-            # Use first available close prices if the originally entered ones are 0 or None
-            if call_trade_price in [0, None]:
-                fr_call_price = first_row['call_close_price']
-                if pd.notna(fr_call_price):
-                    call_trade_price = round(fr_call_price, 2)
-
-            if put_trade_price in [0, None]:
-                fr_put_price = first_row['put_close_price']
-                if pd.notna(fr_put_price):
-                    put_trade_price = round(fr_put_price, 2)
-
 
             if market_open():
                 options = calls_or_puts(symbol, expiration, strike)
@@ -122,13 +141,13 @@ if submitted:
                 }
 
                 new_trade_df = pd.DataFrame([new_trade])
-                # Drop duplicates if the same trade_id and trade_date already exist
                 st.session_state.trades = pd.concat(
                     [st.session_state.trades, new_trade_df],
                     ignore_index=True
                 ).drop_duplicates(subset=['trade_id', 'trade_date'])
 
-            st.success("✅ Trade(s) added successfully with prices auto-filled from first day history.")
+            st.success("✅ Trade(s) added successfully with prices auto-filled and correctly reflected.")
+
 
 # --- Display and Plot Trades ---
 if not st.session_state.trades.empty:

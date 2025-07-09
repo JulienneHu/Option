@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
+import yfinance as yf
 from realPrice.IndexPnl import main, get_option_chain, calls_and_puts
 from realPrice.realOption import getIndexOption
 from tools.pnl_tools import calculate_pnl, market_open
@@ -23,31 +24,71 @@ if 'trades' not in st.session_state:
 with st.form("Trade Input"):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        trade_date = st.text_input("Trade Date", '2025-05-02')
+        trade_date_input = st.date_input("Trade Date", datetime(2025, 5, 2))
+        trade_date = trade_date_input.strftime('%Y-%m-%d')
         symbol = st.text_input("Symbol", '^SPX')
         strike = st.number_input("Strike Price", value=5900.0, step=1.0, format="%.2f")
     with col2:
-        expiration = st.text_input("Expiration Date", '2025-07-18')
-        stock_trade_price = st.number_input("Stock Trade Price", value=412.0, step=1.0, format="%.2f")
+        expiration_input = st.date_input("Expiration Date", datetime(2025, 7, 18))
+        expiration = expiration_input.strftime('%Y-%m-%d')
+        stock_trade_price = st.number_input("Stock Trade Price", value=0.0, step=1.0, format="%.2f")
         effective_delta = st.number_input("Effective Delta", value=0.0, step=0.01, format="%.2f")
     with col3:
-        call_action_type = st.selectbox("Call Action Type", ["buy", "sell"])
+        call_action_type = st.selectbox("Call Action Type", ['sell', 'buy'])
         num_call_contracts = st.number_input("# Call Contracts", min_value=0, value=1)
-        call_trade_price = st.number_input("Call Trade Price", value=11.0)
+        call_trade_price = st.number_input("Call Trade Price", value=0.0)
     with col4:
-        put_action_type = st.selectbox("Put Action Type", ["buy", "sell"])
+        put_action_type = st.selectbox("Put Action Type", ['sell', 'buy'])
         num_put_contracts = st.number_input("# Put Contracts", min_value=0, value=1)
-        put_trade_price = st.number_input("Put Trade Price", value=12.0)
+        put_trade_price = st.number_input("Put Trade Price", value=0.0)
 
-    submitted = st.form_submit_button("Add Trade")
+    col_submit, col_clear = st.columns([3, 1])
+    submitted = col_submit.form_submit_button("Add Trade")
+    clear_clicked = col_clear.form_submit_button("🗑️ Clear History")
 
-# Process submission
+if clear_clicked:
+    st.session_state.trades = st.session_state.trades.iloc[0:0]
+    st.success("🗑️ Trade history cleared.")
+    st.stop()
+
 if submitted:
     with st.spinner("Fetching data and adding trade..."):
+        if stock_trade_price in [0, 0.0, None]:
+            try:
+                ticker = yf.Ticker(symbol)
+                next_day = (trade_date_input + timedelta(days=5)).strftime('%Y-%m-%d')
+                df_hist = ticker.history(start=trade_date, end=next_day)
+                if not df_hist.empty:
+                    stock_trade_price = round(df_hist['Open'].iloc[0], 2)
+            except Exception as e:
+                st.warning(f"⚠️ Could not fetch stock open price: {e}")
+
         option_data = main(symbol, expiration, strike, trade_date)
         get_option_chain(symbol, expiration, strike)
 
         if option_data is not None and not option_data.empty:
+            valid_rows = option_data.dropna(subset=['call_close_price', 'put_close_price'])
+            if not valid_rows.empty:
+                first_valid_row = valid_rows.iloc[0]
+                first_valid_date = first_valid_row['date']
+                first_valid_call_close = first_valid_row['call_close_price']
+                first_valid_put_close = first_valid_row['put_close_price']
+                first_valid_stock_close = first_valid_row['stock_close_price']
+
+                if call_trade_price in [0, 0.0, None]:
+                    call_trade_price = round(first_valid_call_close, 2)
+                if put_trade_price in [0, 0.0, None]:
+                    put_trade_price = round(first_valid_put_close, 2)
+                if stock_trade_price in [0, 0.0, None]:
+                    stock_trade_price = round(first_valid_stock_close, 2)
+                    st.info(f"Auto-filled stock_trade_price with stock_close_price on {first_valid_date}: {stock_trade_price}")
+
+            for col in ['call_close_price', 'put_close_price']:
+                if option_data[col].isnull().any():
+                    first_valid = option_data[col].dropna().iloc[0] if not option_data[col].dropna().empty else None
+                    if first_valid is not None:
+                        option_data[col].fillna(first_valid, inplace=True)
+
             trade_key = f"{trade_date}_{expiration}_{call_action_type}_{put_action_type}_{symbol}_{stock_trade_price}_{call_trade_price}_{put_trade_price}_{strike}_{effective_delta}_{num_call_contracts}_{num_put_contracts}"
             trade_id = hashlib.md5(trade_key.encode()).hexdigest()
 
@@ -98,12 +139,17 @@ if submitted:
                     'change': change
                 }
 
-                if st.session_state.trades[(st.session_state.trades['trade_id'] == trade_id) & (st.session_state.trades['trade_date'] == row['date'].strftime('%Y-%m-%d'))].empty:
+                if st.session_state.trades[
+                    (st.session_state.trades['trade_id'] == trade_id) &
+                    (st.session_state.trades['trade_date'] == row['date'].strftime('%Y-%m-%d'))
+                ].empty:
                     st.session_state.trades = pd.concat([st.session_state.trades, pd.DataFrame([new_trade])], ignore_index=True)
 
             st.success("✅ Trade(s) added successfully!")
+        else:
+            st.warning("⚠️ No data found for the given input.")
 
-# Plotting with selection and filtering
+# Plotting
 if not st.session_state.trades.empty:
     st.subheader("📈 Index PNL Chart")
 
@@ -166,7 +212,7 @@ if not st.session_state.trades.empty:
     )
 
     st.plotly_chart(fig, use_container_width=True)
-    st.subheader("\U0001F4C4 Trade Records")
+    st.subheader("📄 Trade Records")
     st.dataframe(chart_data)
     csv = chart_data.to_csv(index=False).encode('utf-8')
     st.download_button("Download CSV", csv, "trades.csv", "text/csv")
