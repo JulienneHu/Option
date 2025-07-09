@@ -88,13 +88,13 @@ if main_page == "Profiles":
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
     elif profiles_page == "allCallSPX":
-        # Load 'allCallSpx.py' content
-        spec = importlib.util.spec_from_file_location("allCallSpx", "pages/Profiles/allCallSpx.py")
+        # Load 'allCallSPX.py' content
+        spec = importlib.util.spec_from_file_location("allCallSPX", "pages/Profiles/allCallSPX.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
     elif profiles_page == "allPutSPX":
-        # Load 'allPutSpx.py' content
-        spec = importlib.util.spec_from_file_location("allPutSpx", "pages/Profiles/allPutSpx.py")
+        # Load 'allPutSPX.py' content
+        spec = importlib.util.spec_from_file_location("allPutSPX", "pages/Profiles/allPutSPX.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 elif main_page == "BlackScholes":
