@@ -5,7 +5,6 @@ import yfinance as yf
 
 st.title("📘 All Call-Put SPX Visualizer")
 
-# --- Strategy 1 Inputs ---
 st.subheader("Strategy 1")
 col1, col2, col3 = st.columns(3)
 n1_call = col1.slider("N1 Calls", 0, 10, 1)
@@ -16,7 +15,6 @@ col4, col5, col6 = st.columns(3)
 delta1_put = col4.number_input("Delta 1 Put", value=0.0)
 X1 = col5.number_input("Strike Price 1", value=150.0)
 
-# --- Strategy 2 Inputs ---
 st.subheader("Strategy 2")
 col7, col8, col9 = st.columns(3)
 n2_call = col7.slider("N2 Calls", 0, 10, 1)
