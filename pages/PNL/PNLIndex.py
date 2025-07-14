@@ -14,7 +14,7 @@ st.title("📘 Index Option PNL")
 # Initialize session state for trades
 if 'trades' not in st.session_state:
     st.session_state.trades = pd.DataFrame(columns=[
-        'trade_id', 'trade_key_display', 'trade_date', 'symbol', 'strike', 'expiration', 'stock_trade_price',
+        'trade_id', 'trade_key_display', 'actual_trade_date', 'trade_date', 'symbol', 'strike', 'expiration', 'stock_trade_price',
         'effective_delta', 'call_trade_price', 'call_action_type', 'num_call_contracts',
         'put_trade_price', 'put_action_type', 'num_put_contracts', 'stock_close_price',
         'call_close_price', 'put_close_price', 'daily_pnl', 'change'
@@ -53,15 +53,6 @@ if clear_clicked:
 
 if submitted:
     with st.spinner("Fetching data and adding trade..."):
-        if stock_trade_price in [0, 0.0, None]:
-            try:
-                ticker = yf.Ticker(symbol)
-                next_day = (trade_date_input + timedelta(days=5)).strftime('%Y-%m-%d')
-                df_hist = ticker.history(start=trade_date, end=next_day)
-                if not df_hist.empty:
-                    stock_trade_price = round(df_hist['Open'].iloc[0], 2)
-            except Exception as e:
-                st.warning(f"⚠️ Could not fetch stock open price: {e}")
 
         option_data = main(symbol, expiration, strike, trade_date)
         get_option_chain(symbol, expiration, strike)
@@ -74,7 +65,17 @@ if submitted:
                 first_valid_call_close = first_valid_row['call_close_price']
                 first_valid_put_close = first_valid_row['put_close_price']
                 first_valid_stock_close = first_valid_row['stock_close_price']
-
+                if stock_trade_price in [0, 0.0, None]:
+                    try:
+                        ticker = yf.Ticker(symbol)
+                        trade_date = pd.to_datetime(first_valid_date)
+                        next_day = (trade_date + timedelta(days=5)).strftime('%Y-%m-%d')
+                        df_hist = ticker.history(start=trade_date, end=next_day)
+                        if not df_hist.empty:
+                            stock_trade_price = round(df_hist['Open'].iloc[0], 2)
+                    except Exception as e:
+                        st.warning(f"⚠️ Could not fetch stock open price: {e}")
+                
                 if call_trade_price in [0, 0.0, None]:
                     call_trade_price = round(first_valid_call_close, 2)
                 if put_trade_price in [0, 0.0, None]:
@@ -87,7 +88,7 @@ if submitted:
                 if option_data[col].isnull().any():
                     first_valid = option_data[col].dropna().iloc[0] if not option_data[col].dropna().empty else None
                     if first_valid is not None:
-                        option_data[col].fillna(first_valid, inplace=True)
+                        option_data[col] = option_data[col].fillna(first_valid)
 
             trade_key = f"{trade_date}_{expiration}_{call_action_type}_{put_action_type}_{symbol}_{stock_trade_price}_{call_trade_price}_{put_trade_price}_{strike}_{effective_delta}_{num_call_contracts}_{num_put_contracts}"
             trade_id = hashlib.md5(trade_key.encode()).hexdigest()
@@ -120,7 +121,8 @@ if submitted:
                 new_trade = {
                     'trade_id': trade_id,
                     'trade_key_display': trade_key_display,
-                    'trade_date': row['date'].strftime('%Y-%m-%d'),
+                    'actual_trade_date': trade_date,  # Store the actual trade date
+                    'trade_date': row['date'].strftime('%Y-%m-%d'),  # Current data date
                     'symbol': symbol,
                     'strike': strike,
                     'expiration': expiration,
@@ -143,7 +145,11 @@ if submitted:
                     (st.session_state.trades['trade_id'] == trade_id) &
                     (st.session_state.trades['trade_date'] == row['date'].strftime('%Y-%m-%d'))
                 ].empty:
-                    st.session_state.trades = pd.concat([st.session_state.trades, pd.DataFrame([new_trade])], ignore_index=True)
+                    if pd.DataFrame([new_trade]).dropna(how='all').shape[0] > 0:
+                        st.session_state.trades = pd.concat(
+                            [st.session_state.trades, pd.DataFrame([new_trade])], ignore_index=True
+                        )
+
 
             st.success("✅ Trade(s) added successfully!")
         else:
@@ -167,13 +173,25 @@ if not st.session_state.trades.empty:
     selected_trade_info = st.session_state.trades[
         st.session_state.trades['trade_id'] == selected_trade_id
     ]['trade_key_display'].iloc[0]
+    
+    # Get actual trade date for display
+    # actual_trade_date_display = st.session_state.trades[
+    #     st.session_state.trades['trade_id'] == selected_trade_id
+    # ]['actual_trade_date'].iloc[0]
+    
     st.info(f"**Trade Info:** {selected_trade_info}")
 
     chart_data = st.session_state.trades[
         st.session_state.trades['trade_id'] == selected_trade_id
     ].copy()
     chart_data['trade_date'] = pd.to_datetime(chart_data['trade_date'])
+    chart_data['actual_trade_date'] = pd.to_datetime(chart_data['actual_trade_date'])
     chart_data = chart_data.sort_values(by='trade_date')
+    
+    # Filter data to start from actual trade date or later
+    actual_trade_date = chart_data['actual_trade_date'].iloc[0]
+    chart_data = chart_data[chart_data['trade_date'] >= actual_trade_date]
+
     chart_data['plot_index'] = range(len(chart_data))
 
     colors = ['#bd1414' if x < 0 else '#007560' for x in chart_data['daily_pnl']]

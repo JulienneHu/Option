@@ -52,9 +52,10 @@ def generate_option_ticker(base, expiry_date, cp_flag, strike):
 # --- Utility: Verify Existence ---
 def verify_ticker_exists(ticker):
     try:
-        hist = yf.Ticker(ticker).history(period="1d")
-        return not hist.empty
-    except:
+        info = yf.Ticker(ticker).info
+        # Some tickers may return {'quoteType': 'OPTION'} even if valid
+        return 'regularMarketPrice' in info or 'lastPrice' in info or 'openInterest' in info
+    except Exception:
         return False
 
 # --- Fetch and Compute Button ---
@@ -90,6 +91,7 @@ if fetch_btn:
     elif index_symbol == "^NDX":
         call_ticker_candidate = generate_option_ticker("NDX", expiry_date, "C", strike)
         put_ticker_candidate = generate_option_ticker("NDX", expiry_date, "P", strike)
+        print(f"Generated Call Ticker: {call_ticker_candidate}, Put Ticker: {put_ticker_candidate}")
         if verify_ticker_exists(call_ticker_candidate) and verify_ticker_exists(put_ticker_candidate):
             call_ticker, put_ticker = call_ticker_candidate, put_ticker_candidate
         else:
@@ -101,10 +103,10 @@ if fetch_btn:
 
     # If tickers found, fetch and display
     if call_ticker and put_ticker:
-        call_data = yf.Ticker(call_ticker).history(period="1d")
+        call_data = yf.Ticker(call_ticker).history(period="30d")
         print(call_data.tail(1))
         sleep(1)  # To avoid hitting API limits
-        put_data = yf.Ticker(put_ticker).history(period="1d")
+        put_data = yf.Ticker(put_ticker).history(period="30d")
 
         col_call, col_put = st.columns(2)
         with col_call:

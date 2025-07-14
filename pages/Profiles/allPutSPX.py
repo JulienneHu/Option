@@ -3,13 +3,16 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import yfinance as yf
+from datetime import datetime
+
 
 st.title("📘 All Put SPX Visualizer")
 
 # --- Input Block ---
 col1, col2, col3 = st.columns(3)
 symbol = col1.text_input("Symbol", value="^SPX")
-maturity_date = col2.text_input("Maturity Date (YYYY-MM-DD)", value="2025-07-18")
+maturity_date_input = st.date_input("Maturity Date", datetime(2025, 7, 18))
+maturity_date = maturity_date_input.strftime('%Y-%m-%d')
 n_A = col3.slider("Number of A Puts", 0, 10, 1)
 
 col4, col5, col6 = st.columns(3)

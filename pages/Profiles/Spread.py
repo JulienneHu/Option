@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from realPrice.realOption import calls_or_puts
 from tools.SpreadFetch import fetch_stock_price_streamlit, fetch_option_prices_streamlit
+from datetime import datetime
 
 # st.set_page_config(page_title="📈 Spread Option Strategy Visualizer", layout="wide")
 st.title("📈 Spread Option Strategy Visualizer")
@@ -27,7 +28,8 @@ with col2:
     num2 = st.slider("Contracts N2", min_value=0, max_value=5, value=1)
 
 with col3:
-    maturity_date = st.text_input("Maturity Date (YYYY-MM-DD)", value="2025-08-15")
+    maturity_date_input = st.date_input("Maturity Date", datetime(2025, 8, 15))
+    maturity_date = maturity_date_input.strftime('%Y-%m-%d')
     stock_price = st.number_input("Stock Price", value=150.0)
     s_range = st.number_input("Stock Range (%)", value=0.25)
     y_min = st.number_input("Y Axis Min", value=-1000)

@@ -46,7 +46,7 @@ main_page = st.sidebar.selectbox(
 if main_page == "Profiles":
     profiles_page = st.sidebar.radio(
         "Profiles Pages",
-        ["AppProfile", 'AppProfile2X', "Butterfly", "Condor", "Spread", 'allCallSPX', 'allPutSPX']
+        ["AppProfile", 'AppProfile2X', "AppProfileIndex", "AppProfileIndexDiff", "AppProfilePast", "Butterfly", "Condor", "Spread", 'allCallSPX', 'allPutSPX']
     )
 elif main_page == "BlackScholes":
     blackscholes_page = st.sidebar.radio(
@@ -70,6 +70,21 @@ if main_page == "Profiles":
     elif profiles_page == "AppProfile2X":
         # Load 'AppProfile2X.py' content
         spec = importlib.util.spec_from_file_location("AppProfile2X", "pages/Profiles/AppProfile2X.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    elif profiles_page == "AppProfileIndex":
+        # Load 'AppProfileIndex.py' content
+        spec = importlib.util.spec_from_file_location("AppProfileIndex", "pages/Profiles/AppProfileIndex.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    elif profiles_page == "AppProfileIndexDiff":
+        # Load 'AppProfileIndexDiff.py' content
+        spec = importlib.util.spec_from_file_location("AppProfileIndexDiff", "pages/Profiles/AppProfileIndexDiff.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    elif profiles_page == "AppProfilePast":
+        # Load 'AppProfilePast.py' content
+        spec = importlib.util.spec_from_file_location("AppProfilePast", "pages/Profiles/AppProfilePast.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
     elif profiles_page == "Butterfly":

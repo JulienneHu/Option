@@ -2,6 +2,8 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import yfinance as yf
+from datetime import datetime
+
 
 st.title("📘 All Call-Put SPX Visualizer")
 
@@ -29,7 +31,8 @@ X2 = col11.number_input("Strike Price 2", value=180.0)
 st.subheader("Stock & Global Settings")
 col13, col14, col15 = st.columns(3)
 symbol = col13.text_input("Symbol", "AAPL")
-maturity_date = col14.text_input("Maturity Date (YYYY-MM-DD)", "2025-08-15")
+maturity_date_input = st.date_input("Maturity Date", datetime(2025, 7, 18))
+maturity_date = maturity_date_input.strftime('%Y-%m-%d')
 stock_range = col15.number_input("Stock Range (%)", value=0.2)
 
 col16, col17 = st.columns(2)

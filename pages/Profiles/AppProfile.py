@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from realPrice.realOption import get_realtime_option_price, calls_or_puts
 from realPrice.realOptionProfile import main as get_option
 from tools.APFetch import fetch_stock_price_streamlit, fetch_option_prices_streamlit
+from datetime import datetime
+
 
 st.title("📘 AppProfile")
 
@@ -14,7 +16,8 @@ with col1:
     delta_call = st.number_input("Delta Call", value=0.0)
     
 with col2:
-    date = st.text_input("Expiration Date (YYYY-MM-DD)", value="2025-08-15")
+    date_input = st.date_input("Maturity Date", datetime(2025, 8, 15))
+    date = date_input.strftime('%Y-%m-%d')
     n_put = st.slider("Number of Puts", 0, 5, 1)
     delta_put = st.number_input("Delta Put", value=0.0)
 with col3:

@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from realPrice.realOption import get_realtime_option_price, calls_or_puts
 from realPrice.realOptionProfile import main as get_option
 from tools.ButterflyFetch import fetch_stock_price_streamlit, fetch_option_prices_streamlit
+from datetime import datetime
 
 st.title("🦋 Butterfly Option Strategy Visualizer")
 
@@ -27,7 +28,8 @@ with col2:
     y_min = st.number_input("Y Axis Min", value=-2000)
 
 with col3:
-    maturity_date = st.text_input("Maturity Date (YYYY-MM-DD)", value="2025-08-15")
+    maturity_date_input = st.date_input("Maturity Date", datetime(2025, 8, 15))
+    maturity_date = maturity_date_input.strftime('%Y-%m-%d')
     x3 = st.number_input("Strike X3", value=195.0)
     c3 = st.number_input("Call Premium C3", value=5.5)
     p3 = st.number_input("Put Premium P3", value=10.0)
