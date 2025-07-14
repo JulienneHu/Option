@@ -9,12 +9,14 @@ from tools.pnl_tools import calculate_pnl, get_ticker, get_pnl
 st.title("📘 Expired Option PNL Tracker")
 
 # Initialize session state with trade_id for uniqueness
-if 'trades_df' not in st.session_state:
+# Auto-clear history only once per session
+if 'trades_df_reset' not in st.session_state:
     st.session_state.trades_df = pd.DataFrame(columns=[
         'trade_id', 'trade_key_display', 'trade_date', 'symbol', 'strike', 'expiration', 'stock_trade_price',
         'effective_delta', 'call_trade_price', 'call_action_type', 'num_call_contracts',
         'put_trade_price', 'put_action_type', 'num_put_contracts', 'stock_close_price',
         'call_close_price', 'put_close_price', 'daily_pnl', 'change'])
+    st.session_state.trades_df_reset = True
 
 # Form input
 with st.form("trade_form"):

@@ -11,6 +11,7 @@ from tools.pnl_tools import calculate_pnl, market_open
 # --- Page Config ---
 st.title("📘 Option PNL Tracker")
 
+
 # --- Persistent Storage ---
 def initialize_trades():
     return pd.DataFrame(columns=[
@@ -21,8 +22,10 @@ def initialize_trades():
         'daily_pnl', 'change'
     ])
 
-if 'trades' not in st.session_state:
+# Auto-clear history only once per session or visit
+if 'trades' not in st.session_state or 'trades_reset' not in st.session_state:
     st.session_state.trades = initialize_trades()
+    st.session_state.trades_reset = True
 
 # --- Input Form ---
 with st.form("Trade Input"):
