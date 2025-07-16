@@ -79,17 +79,38 @@ if fetch:
 
         y = 100 * (y_option + y_stock)
         yp = np.maximum(y, 0)
+        y_neg = np.where(yp == 0)[0]
+        y_pos = np.where(yp > 0)[0]
+
+        if y_neg.size != 0 and y_pos.size != 0:
+            if y_neg[0] > 0 and y_neg[-1] < len(S_grid) - 1:
+                pos_str = f'(0, {np.ceil(S_grid[y_neg[0] - 1])}) and ({np.floor(S_grid[y_neg[-1] + 1])}, ∞)'
+            else:
+                pos_range = S_grid[y_pos]
+                if y_pos[0] == 0:
+                    pos_str = f'(0, {np.ceil(pos_range[-1])})'
+                else:
+                    pos_str = f'({np.floor(pos_range[0])}, {np.ceil(pos_range[-1])})'
+        elif y_neg.size == 0:
+            pos_str = '(0, ∞)'
+        else:
+            pos_str = '∞'
+
 
         fig, ax = plt.subplots()
         ax.plot(S_grid, y, 'blue', label='Strategy PnL')
         ax.fill_between(S_grid, y, where=(y > 0), color='#007560', alpha=0.8, label='Profit')
         ax.fill_between(S_grid, y, where=(y <= 0), color='#bd1414', alpha=0.8, label='Loss')
-        ax.set_title(f"100Δ_effective = {round(100 * effective_delta)}")
+        ax.set_title(
+            f'100Δ_effective = {round(100 * effective_delta)}. Make money if S ∈ {pos_str}\n' \
+            f'n_call = {n_call}, n_put = {n_put}, Δ_call = {delta_call:.2f}, Δ_put = {delta_put:.2f}'
+        )
         ax.set_xlabel("Stock Price")
         ax.set_ylabel("Payoff at Maturity")
         ax.axhline(0, color='black')
         ax.set_ylim([y_min, y_max])
         ax.set_xlim([S_min, S_max])
+        ax.grid(True)
         ax.legend()
         st.pyplot(fig)
         with st.expander("Option & Stock Data", expanded=True):

@@ -5,49 +5,53 @@ import yfinance as yf
 from datetime import datetime
 
 
-st.title("📘 All Call-Put SPX Visualizer")
+st.title("📘 App Profile 2X")
 
 st.subheader("Strategy 1")
 col1, col2, col3 = st.columns(3)
 n1_call = col1.slider("N1 Calls", 0, 10, 1)
 n1_put = col2.slider("N1 Puts", 0, 10, 1)
-delta1_call = col3.number_input("Delta 1 Call", value=0.0)
 
 col4, col5, col6 = st.columns(3)
-delta1_put = col4.number_input("Delta 1 Put", value=0.0)
-X1 = col5.number_input("Strike Price 1", value=150.0)
+delta1_call = col4.number_input("Delta 1 Call", value=0.0)
+delta1_put = col5.number_input("Delta 1 Put", value=0.0)
+X1 = col6.number_input("Strike Price 1", value=150.0)
 
 st.subheader("Strategy 2")
 col7, col8, col9 = st.columns(3)
 n2_call = col7.slider("N2 Calls", 0, 10, 1)
 n2_put = col8.slider("N2 Puts", 0, 10, 1)
-delta2_call = col9.number_input("Delta 2 Call", value=0.0)
+
 
 col10, col11, col12 = st.columns(3)
-delta2_put = col10.number_input("Delta 2 Put", value=0.0)
-X2 = col11.number_input("Strike Price 2", value=180.0)
+delta2_call = col10.number_input("Delta 2 Call", value=0.0)
+delta2_put = col11.number_input("Delta 2 Put", value=0.0)
+X2 = col12.number_input("Strike Price 2", value=180.0)
 
 # --- General Inputs ---
 st.subheader("Stock & Global Settings")
 col13, col14, col15 = st.columns(3)
 symbol = col13.text_input("Symbol", "AAPL")
-maturity_date_input = st.date_input("Maturity Date", datetime(2025, 7, 18))
-maturity_date = maturity_date_input.strftime('%Y-%m-%d')
+with col14:
+    maturity_date_input = st.date_input("Maturity Date", datetime(2025, 7, 18))
+    maturity_date = maturity_date_input.strftime('%Y-%m-%d')
 stock_range = col15.number_input("Stock Range (%)", value=0.2)
 
 col16, col17 = st.columns(2)
 y_min = col16.number_input("Y Axis Min", value=-5000)
 y_max = col17.number_input("Y Axis Max", value=5000)
 
-trade1_type = st.selectbox(
-    "Strategy 1 Trade Type",
-    ['Buy Call-Buy Put', 'Buy Call-Sell Put', 'Sell Call-Buy Put', 'Sell Call-Sell Put'],
-)
-
-trade2_type = st.selectbox(
-    "Strategy 2 Trade Type",
-    ['Buy Call-Buy Put', 'Buy Call-Sell Put', 'Sell Call-Buy Put', 'Sell Call-Sell Put'],
-)
+col18, col19 = st.columns(2)
+with col18:
+    trade1_type = st.selectbox(
+        "Strategy 1 Trade Type",
+        ['Buy Call-Buy Put', 'Buy Call-Sell Put', 'Sell Call-Buy Put', 'Sell Call-Sell Put'],
+    )
+with col19:
+    trade2_type = st.selectbox(
+        "Strategy 2 Trade Type",
+        ['Buy Call-Buy Put', 'Buy Call-Sell Put', 'Sell Call-Buy Put', 'Sell Call-Sell Put'],
+    )
 
 # --- Fetch, Display, and Plot ---
 if st.button("Fetch Data and Plot Strategy"):
@@ -140,19 +144,40 @@ if st.button("Fetch Data and Plot Strategy"):
 
         y1, eff_delta1 = calc_strategy(n1_call, n1_put, delta1_call, delta1_put, X1, call1_premium_use, put1_premium_use, trade1_type)
         y2, eff_delta2 = calc_strategy(n2_call, n2_put, delta2_call, delta2_put, X2, call2_premium_use, put2_premium_use, trade2_type)
-        y_total = y1 + y2
-        eff_delta_total = eff_delta1 + eff_delta2
+        
+        y = y1 + y2
+        Effective_Delta = eff_delta1 + eff_delta2
+        yp = np.maximum(y, 0)
+        y_neg = np.where(yp == 0)[0]
+        y_pos = np.where(yp > 0)[0]
+        if len(y_neg) != 0 and len(y_pos) != 0:
+            if y_neg[0] > 0 and y_neg[-1] < len(S_grid) - 1:
+                pos_str = f'(0, {np.ceil(S_grid[y_neg[0] - 1])}) and ({np.floor(S_grid[y_neg[-1] + 1])}, ∞)'
+            else:
+                pos_range = S_grid[y_pos]
+                if y_pos[0] == 0:
+                    pos_str = f'(0, {np.ceil(pos_range[-1])})'
+                else:
+                    pos_str = f'({np.floor(pos_range[0])}, {np.ceil(pos_range[-1])})'
+        elif len(y_neg) == 0:
+            pos_str = '(0, ∞)'
+        else:
+            pos_str = '∞'
+
 
         # Plot
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(S_grid, y1, label="Strategy 1", color="red")
         ax.plot(S_grid, y2, label="Strategy 2", color="purple")
-        ax.plot(S_grid, y_total, label="Combined", color="blue")
+        ax.plot(S_grid, y, label="Combined", color="blue")
         ax.axhline(0, color='black', linewidth=1)
         ax.set_ylim(y_min, y_max)
         ax.set_xlabel("Stock Price")
         ax.set_ylabel("Payoff at Maturity")
-        ax.set_title(f"Combined Effective Delta: {eff_delta_total:.2f}")
+        ax.set_title(f'100Δ_effective = {round(100 * Effective_Delta)}. Make money if S ∈ {pos_str}\n' \
+                     f'n1_call = {n1_call}, n1_put = {n1_put}, n2_call = {n2_call}, n2_put = {n2_put}\n' \
+                     f'Δ1_call = {delta1_call:.2f}, Δ1_put = {delta1_put:.2f}, Δ2_call = {delta2_call:.2f}, Δ2_put = {delta2_put:.2f}'
+        )
         ax.grid(True)
         ax.legend()
         st.pyplot(fig)

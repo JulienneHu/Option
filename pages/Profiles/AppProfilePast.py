@@ -93,9 +93,9 @@ title_str += f"n_call = {num_calls}, n_put = {num_puts}, Δ_call = {delta_call:.
 
 fig, ax = plt.subplots()
 ax.plot(S_grid, y, 'blue', linewidth=1.5, label='Strategy PnL')
-ax.fill_between(S_grid, y, where=(y > 0), color='#bd1414', alpha=0.8, label='Profit')
-ax.fill_between(S_grid, y, where=(y <= 0), color='#007560', alpha=0.8, label='Loss')
-ax.set_title(title_str, fontsize=14, fontweight='bold')
+ax.fill_between(S_grid, y, where=(y > 0), color='#007560', alpha=0.8, label='Profit')
+ax.fill_between(S_grid, y, where=(y <= 0), color='#bd1414', alpha=0.8, label='Loss')
+ax.set_title(title_str)
 ax.set_xlabel("Stock Price")
 ax.set_ylabel("Payoff at Maturity")
 ax.axhline(0, color='black', linewidth=1.5)

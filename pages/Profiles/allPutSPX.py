@@ -11,27 +11,28 @@ st.title("📘 All Put SPX Visualizer")
 # --- Input Block ---
 col1, col2, col3 = st.columns(3)
 symbol = col1.text_input("Symbol", value="^SPX")
-maturity_date_input = st.date_input("Maturity Date", datetime(2025, 7, 18))
-maturity_date = maturity_date_input.strftime('%Y-%m-%d')
-n_A = col3.slider("Number of A Puts", 0, 10, 1)
+with col2:
+    maturity_date_input = st.date_input("Maturity Date", datetime(2025, 7, 18))
+    maturity_date = maturity_date_input.strftime('%Y-%m-%d')
+trade_type = col3.selectbox(
+    "Trade Type",
+    ['Buy A - Buy B', 'Buy A - Sell B', 'Sell A - Buy B', 'Sell A - Sell B']
+)
 
 col4, col5, col6 = st.columns(3)
-n_B = col4.slider("Number of B Puts", 0, 10, 2)
-delta_A = col5.number_input("Delta A", value=0.0)
-delta_B = col6.number_input("Delta B", value=0.0)
+n_A = col4.slider("Number of A Puts", 0, 10, 1)
+Ax = col5.number_input("Strike A", value=6175.0)
+delta_A = col6.number_input("Delta A", value=0.0)
 
 col7, col8, col9 = st.columns(3)
-Ax = col7.number_input("Strike A", value=6175.0)
+n_B = col7.slider("Number of B Puts", 0, 10, 2)
 Bx = col8.number_input("Strike B", value=6230.0)
-stock_range = col9.number_input("Stock Range (%)", value=0.25)
+delta_B = col9.number_input("Delta B", value=0.0)
 
 col10, col11, col12 = st.columns(3)
 y_min = col10.number_input("Y Axis Min", value=-1000)
 y_max = col11.number_input("Y Axis Max", value=1000)
-trade_type = col12.selectbox(
-    "Trade Type",
-    ['Buy A - Buy B', 'Buy A - Sell B', 'Sell A - Buy B', 'Sell A - Sell B']
-)
+stock_range = col12.number_input("Stock Range (%)", value=0.25)
 
 # --- Fetch Data & Display ---
 if st.button("Fetch Data & Plot"):
@@ -96,7 +97,25 @@ if st.button("Fetch Data & Plot"):
             effective_delta = n_A * delta_A + n_B * delta_B
 
         y = 100 * (y_option + y_stock)
+        # --- Calculate Profit Range (pos_str) ---
+        yp = np.maximum(y, 0)
+        y_neg = np.where(yp == 0)[0]
+        y_pos = np.where(yp > 0)[0]
 
+        if y_neg.size != 0 and y_pos.size != 0:
+            if y_neg[0] > 0 and y_neg[-1] < len(S_grid) - 1:
+                pos_str = f'(0, {np.ceil(S_grid[y_neg[0] - 1])}) and ({np.floor(S_grid[y_neg[-1] + 1])}, ∞)'
+            else:
+                pos_range = S_grid[y_pos]
+                if y_pos[0] == 0:
+                    pos_str = f'(0, {np.ceil(pos_range[-1])})'
+                else:
+                    pos_str = f'({np.floor(pos_range[0])}, {np.ceil(pos_range[-1])})'
+        elif y_neg.size == 0:
+            pos_str = '(0, ∞)'
+        else:
+            pos_str = '∞'
+            
         # --- Plot ---
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(S_grid, y, label="Strategy P/L", color="blue")
@@ -108,6 +127,7 @@ if st.button("Fetch Data & Plot"):
         ax.set_ylim(y_min, y_max)
         ax.set_title(
             f"Trade: {trade_type} | 100Δ_effective = {round(100 * effective_delta, 2)}\n"
+            f"Make $ if S ∈ {pos_str}\n"
             f"n_A={n_A}, n_B={n_B}, Δ_A={delta_A}, Δ_B={delta_B}, S={live_price:.2f}"
         )
         ax.legend()
@@ -128,11 +148,11 @@ if st.button("Fetch Data & Plot"):
             """, unsafe_allow_html=True)
 
             st.markdown(f"""
-            **Call Ticker:** <code>{A_symbol}</code> | Last: {A_last} | Ask: {A_ask} | Bid: {A_bid}
+            **Put A Ticker:** <code>{A_symbol}</code> | Last: {A_last} | Ask: {A_ask} | Bid: {A_bid}
             """, unsafe_allow_html=True)
 
             st.markdown(f"""
-            **Put Ticker:** <code>{B_symbol}</code> | Last: {B_last} | Ask: {B_ask} | Bid: {B_bid}
+            **Put B Ticker:** <code>{B_symbol}</code> | Last: {B_last} | Ask: {B_ask} | Bid: {B_bid}
             """, unsafe_allow_html=True)
 
     except Exception as e:

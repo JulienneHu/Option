@@ -115,7 +115,10 @@ ax.axhline(0, color='black', linewidth=1.5)
 ax.set_xlabel("Stock Price")
 ax.set_ylabel("Payoff at Maturity")
 ax.set_ylim([y_min, y_max])
-ax.set_title("Option Strategy Payoff")
+ax.set_title(
+    f'100Δ_effective = {round(100 * effective_delta)}. Make money if S ∈ {pos_str}\n'
+    f'n_call = {n_call}, n_put = {n_put}, Δ_call = {delta_call:.2f}, Δ_put = {delta_put:.2f}'
+)
 ax.grid(True)
 ax.legend()
 st.pyplot(fig)
