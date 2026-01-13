@@ -22,12 +22,12 @@ if 'trades_df_reset' not in st.session_state:
 with st.form("trade_form"):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        trade_date_input = st.date_input("Trade Date", datetime(2025, 5, 8))
+        trade_date_input = st.date_input("Trade Date", datetime(2025, 12, 1))
         trade_date = trade_date_input.strftime('%Y-%m-%d')
         symbol = st.text_input("Symbol", 'IBM')
         strike = st.number_input("Strike Price", value=280.0, step=1.0, format="%.2f")
     with col2:
-        expiration_input = st.date_input("Expiration Date", datetime(2025, 6, 20))
+        expiration_input = st.date_input("Expiration Date", datetime(2025, 12, 19))
         expiration = expiration_input.strftime('%Y-%m-%d')
         stock_trade_price = st.number_input("Stock Trade Price", value=0.0, step=1.0, format="%.2f")
         effective_delta = st.number_input("Effective Delta", value=0.0, step=0.01, format="%.2f")

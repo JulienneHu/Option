@@ -24,12 +24,12 @@ if 'trades' not in st.session_state:
 with st.form("Trade Input"):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        trade_date_input = st.date_input("Trade Date", datetime(2025, 5, 2))
+        trade_date_input = st.date_input("Trade Date", datetime(2026, 1, 1))
         trade_date = trade_date_input.strftime('%Y-%m-%d')
         symbol = st.text_input("Symbol", '^SPX')
         strike = st.number_input("Strike Price", value=5900.0, step=1.0, format="%.2f")
     with col2:
-        expiration_input = st.date_input("Expiration Date", datetime(2025, 7, 18))
+        expiration_input = st.date_input("Expiration Date", datetime(2026, 2, 20))
         expiration = expiration_input.strftime('%Y-%m-%d')
         stock_trade_price = st.number_input("Stock Trade Price", value=0.0, step=1.0, format="%.2f")
         effective_delta = st.number_input("Effective Delta", value=0.0, step=0.01, format="%.2f")
