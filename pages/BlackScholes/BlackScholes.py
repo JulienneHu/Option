@@ -11,7 +11,7 @@ st.title("📘 Black-Scholes")
 
 # --- Compact Date Row ---
 today = datetime.now()
-maturity_date = st.date_input("📅 Maturity Date", value=date(2025, 8, 15))
+maturity_date = st.date_input("📅 Maturity Date", value=date(2026, 8, 21))
 calcT_days = (maturity_date - today.date()).days
 if today.hour >= 14:
     calcT_days -= 1
