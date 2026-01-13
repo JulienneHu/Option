@@ -28,7 +28,7 @@ with col2:
     y_min = st.number_input("Y Axis Min", value=-1500)
 
 with col3:
-    maturity_date_input = st.date_input("Maturity Date", datetime(2025, 8, 15))
+    maturity_date_input = st.date_input("Maturity Date", datetime(2026, 8, 21))
     maturity_date = maturity_date_input.strftime('%Y-%m-%d')
     x3 = st.number_input("Strike X3", value=190.0)
     c3 = st.number_input("Call Premium C3", value=5.5)

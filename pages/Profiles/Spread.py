@@ -28,7 +28,7 @@ with col2:
     num2 = st.slider("Contracts N2", min_value=0, max_value=5, value=1)
 
 with col3:
-    maturity_date_input = st.date_input("Maturity Date", datetime(2025, 8, 15))
+    maturity_date_input = st.date_input("Maturity Date", datetime(2026, 8, 21))
     maturity_date = maturity_date_input.strftime('%Y-%m-%d')
     stock_price = st.number_input("Stock Price", value=150.0)
     s_range = st.number_input("Stock Range (%)", value=0.25)

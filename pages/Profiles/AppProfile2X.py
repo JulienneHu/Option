@@ -33,7 +33,7 @@ st.subheader("Stock & Global Settings")
 col13, col14, col15 = st.columns(3)
 symbol = col13.text_input("Symbol", "AAPL")
 with col14:
-    maturity_date_input = st.date_input("Maturity Date", datetime(2025, 7, 18))
+    maturity_date_input = st.date_input("Maturity Date", datetime(2026, 8, 21))
     maturity_date = maturity_date_input.strftime('%Y-%m-%d')
 stock_range = col15.number_input("Stock Range (%)", value=0.2)
 

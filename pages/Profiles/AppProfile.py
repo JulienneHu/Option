@@ -16,7 +16,7 @@ with col1:
     delta_call = st.number_input("Delta Call", value=0.0)
     
 with col2:
-    date_input = st.date_input("Maturity Date", datetime(2025, 8, 15))
+    date_input = st.date_input("Maturity Date", datetime(2026, 8, 21))
     date = date_input.strftime('%Y-%m-%d')
     n_put = st.slider("Number of Puts", 0, 5, 1)
     delta_put = st.number_input("Delta Put", value=0.0)

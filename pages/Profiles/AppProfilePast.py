@@ -12,7 +12,7 @@ col1, col2, col3 = st.columns(3)
 with col1:
     symbol = st.text_input("Symbol", "AAPL")
 with col2:
-    expiration_input = st.date_input("Maturity Date", datetime(2025, 6, 20))
+    expiration_input = st.date_input("Maturity Date", datetime(2026, 8, 21))
     expiration = expiration_input.strftime('%Y-%m-%d')
 with col3:
     strike_price = st.number_input("Strike Price", value=190.0)

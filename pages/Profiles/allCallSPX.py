@@ -11,7 +11,7 @@ st.title("📘 All Call SPX Visualizer")
 col1, col2, col3 = st.columns(3)
 symbol = col1.text_input("Symbol", value="^SPX")
 with col2:
-    maturity_date_input = st.date_input("Maturity Date", datetime(2025, 7, 18))
+    maturity_date_input = st.date_input("Maturity Date", datetime(2026, 8, 21))
     maturity_date = maturity_date_input.strftime('%Y-%m-%d')
 trade_type = col3.selectbox(
     "Trade Type",
