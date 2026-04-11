@@ -7,6 +7,36 @@ from tools.APFetch import fetch_stock_price_streamlit, fetch_option_prices_strea
 from datetime import datetime
 
 
+def resolve_option_price(data, side):
+    """
+    data = (last, ask, bid)
+    side = 'buy' or 'sell'
+    returns: price, source
+    """
+    if data is None or len(data) < 3:
+        return None, None
+
+    last_price, ask_price, bid_price = data[0], data[1], data[2]
+
+    if side == "buy":
+        if ask_price is not None:
+            return ask_price, "ask"
+        if last_price is not None:
+            return last_price, "last"
+        if bid_price is not None:
+            return bid_price, "bid"
+
+    elif side == "sell":
+        if bid_price is not None:
+            return bid_price, "bid"
+        if last_price is not None:
+            return last_price, "last"
+        if ask_price is not None:
+            return ask_price, "ask"
+
+    return None, None
+
+
 st.title("📘 AppProfile")
 
 col1, col2, col3 = st.columns(3)
@@ -14,17 +44,19 @@ with col1:
     symbol = st.text_input("Symbol", value="AAPL")
     n_call = st.slider("Number of Calls", 0, 5, 1)
     delta_call = st.number_input("Delta Call", value=0.0)
-    
+
 with col2:
     date_input = st.date_input("Maturity Date", datetime(2026, 8, 21))
     date = date_input.strftime('%Y-%m-%d')
     n_put = st.slider("Number of Puts", 0, 5, 1)
     delta_put = st.number_input("Delta Put", value=0.0)
+
 with col3:
     strike = st.number_input("Strike Price", value=200.0)
-    trade_type = st.selectbox("Trade Type", ['Buy Call-Buy Put', 'Buy Call-Sell Put', 'Sell Call-Buy Put', 'Sell Call-Sell Put'])
-    
-
+    trade_type = st.selectbox(
+        "Trade Type",
+        ['Buy Call-Buy Put', 'Buy Call-Sell Put', 'Sell Call-Buy Put', 'Sell Call-Sell Put']
+    )
 
 # Additional controls
 col4, col5, col6 = st.columns(3)
@@ -35,11 +67,9 @@ with col5:
 with col6:
     s_range = st.number_input("Stock Range (%)", value=0.25)
 
-
 if symbol and date and strike:
     option_tickers = calls_or_puts(symbol, date, strike)
 
-    # Validate result
     if not option_tickers or len(option_tickers) < 2 or not all(option_tickers):
         st.error("❌ Unable to generate valid option tickers. Please check the symbol, date, and strike.")
         st.stop()
@@ -55,13 +85,35 @@ else:
     st.warning("Please input all required parameters.")
     st.stop()
 
-
 if None in [call_data, put_data, stock_price]:
     st.error("❌ Failed to retrieve data. Check ticker or internet connection.")
     st.stop()
 
-call_price = call_data[1] if 'Buy' in trade_type else call_data[2]
-put_price = put_data[1] if 'Buy' in trade_type.split('-')[1] else put_data[2]
+call_side, put_side = trade_type.split('-')
+
+call_price, call_source = resolve_option_price(
+    call_data,
+    "buy" if "Buy" in call_side else "sell"
+)
+
+put_price, put_source = resolve_option_price(
+    put_data,
+    "buy" if "Buy" in put_side else "sell"
+)
+
+if call_price is None or put_price is None:
+    st.error("❌ Failed to determine option price from ask/bid/last.")
+    st.write("Call data:", call_data)
+    st.write("Put data:", put_data)
+    st.stop()
+
+is_weekend = datetime.today().weekday() >= 5
+used_last = (call_source == "last") or (put_source == "last")
+
+if is_weekend and used_last:
+    st.warning("⚠️ Market is closed on weekends. Ask/Bid may be unavailable, so last traded price is being used.")
+elif used_last:
+    st.warning("⚠️ Ask/Bid is unavailable for one or more options, so last traded price is being used.")
 
 S_min = np.floor(stock_price * (1 - s_range))
 S_max = np.ceil(stock_price * (1 + s_range))
@@ -74,14 +126,17 @@ if trade_type == 'Buy Call-Buy Put':
     y_option = n_call * (call_payoff - call_price) + n_put * (put_payoff - put_price)
     y_stock = n_call * delta_call * (stock_price - S_grid) + n_put * (-abs(delta_put)) * (stock_price - S_grid)
     effective_delta = -n_call * delta_call - n_put * (-abs(delta_put))
+
 elif trade_type == 'Buy Call-Sell Put':
     y_option = n_call * (call_payoff - call_price) + n_put * (put_price - put_payoff)
     y_stock = n_call * delta_call * (stock_price - S_grid) + n_put * (-abs(delta_put)) * (S_grid - stock_price)
     effective_delta = -n_call * delta_call + n_put * (-abs(delta_put))
+
 elif trade_type == 'Sell Call-Buy Put':
     y_option = n_call * (call_price - call_payoff) + n_put * (put_payoff - put_price)
     y_stock = n_call * delta_call * (S_grid - stock_price) + n_put * (-abs(delta_put)) * (stock_price - S_grid)
     effective_delta = n_call * delta_call - n_put * (-abs(delta_put))
+
 elif trade_type == 'Sell Call-Sell Put':
     y_option = n_call * (call_price - call_payoff) + n_put * (put_price - put_payoff)
     y_stock = n_call * delta_call * (S_grid - stock_price) + n_put * (-abs(delta_put)) * (S_grid - stock_price)
@@ -105,7 +160,6 @@ elif y_neg.size == 0:
 else:
     pos_str = '∞'
 
-
 # Plot
 fig, ax = plt.subplots(figsize=(10, 6))
 ax.plot(S_grid, PnL, label='Strategy PnL', color='blue')
@@ -125,6 +179,14 @@ st.pyplot(fig)
 
 # Show fetched data
 with st.expander("Option & Stock Data", expanded=False):
-    st.metric(label="Stock Price", value=f"{stock_price:.2f}", delta=f"{price_change:.2f} ({pct_change:.2f}%)")
-    st.write(f"Call Ticker: `{option_tickers[0]}` | Last: {call_data[0]} | Ask: {call_data[1]} | Bid: {call_data[2]}")
-    st.write(f"Put Ticker: `{option_tickers[1]}` | Last: {put_data[0]} | Ask: {put_data[1]} | Bid: {put_data[2]}")
+    st.metric(
+        label="Stock Price",
+        value=f"{stock_price:.2f}",
+        delta=f"{price_change:.2f} ({pct_change:.2f}%)"
+    )
+    st.write(
+        f"Call Ticker: `{option_tickers[0]}` | Last: {call_data[0]} | Ask: {call_data[1]} | Bid: {call_data[2]} | Used: {call_price} ({call_source})"
+    )
+    st.write(
+        f"Put Ticker: `{option_tickers[1]}` | Last: {put_data[0]} | Ask: {put_data[1]} | Bid: {put_data[2]} | Used: {put_price} ({put_source})"
+    )
