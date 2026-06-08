@@ -67,6 +67,11 @@ with col5:
 with col6:
     s_range = st.number_input("Stock Range (%)", value=0.25)
 
+fetch_btn = st.button("🚀 Fetch Data & Plot", use_container_width=True)
+
+if not fetch_btn:
+    st.stop()
+
 if symbol and date and strike:
     option_tickers = calls_or_puts(symbol, date, strike)
 
