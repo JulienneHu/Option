@@ -147,7 +147,7 @@ def main(company='ADBE', strike_date='2024-08-16', strike=470, trade_date='2024-
             df.loc[len(df)] = [datetime.now().date(), current_call_price, current_put_price, current_price]
             
             # for nan values, fill them with the previous day's value
-            df = df.fillna(method='ffill')
+            df = df.ffill()
             return df
         else:
             print("Could not retrieve data for one or more options.")

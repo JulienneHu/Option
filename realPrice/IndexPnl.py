@@ -150,7 +150,7 @@ def main(company='^SPX', date='2024-08-16', strike=4700, trade_date='2024-07-01'
         put_price = realPrices[1]
         
         df.loc[len(df)] = [datetime.now().date(), call_price, put_price, current_price]
-        df = df.fillna(method='ffill')
+        df = df.ffill()
         # round the stock price to two digits
         df['stock_close_price'] = df['stock_close_price'].round(2)
         print(df)
