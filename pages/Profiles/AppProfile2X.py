@@ -1,7 +1,7 @@
 import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 from datetime import datetime
 
 
@@ -57,7 +57,7 @@ with col19:
 if st.button("Fetch Data and Plot Strategy"):
 
     try:
-        ticker = yf.Ticker(symbol)
+        ticker = yf_ticker(symbol)
         hist = ticker.history(period="2d")
         live_price = hist['Close'].iloc[-1]
         previous_price = hist['Close'].iloc[-2]

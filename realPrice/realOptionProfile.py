@@ -1,4 +1,4 @@
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 from datetime import datetime
 import holidays
 import pytz
@@ -11,7 +11,7 @@ def get_realtime_option_price(option_name):
     # Process input option name
     today = datetime.today()
     company = option_name[:next((i for i, char in enumerate(option_name) if char.isdigit()), None)]
-    comp_info = yf.Ticker(company)
+    comp_info = yf_ticker(company)
     
     length = len(company)
     date = option_name[length:length + 6]
@@ -66,7 +66,7 @@ def get_realtime_option_price(option_name):
 
 def calls_or_puts(company, date, strike):
     options = [] 
-    ticker = yf.Ticker(company)
+    ticker = yf_ticker(company)
     expiration_dates = ticker.options
 
     if date in expiration_dates:

@@ -1,4 +1,4 @@
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 from realPrice.realStock import get_realtime_stock_price
 import requests
 import pandas as pd
@@ -9,7 +9,7 @@ import holidays
 
 
 def get_option_chain(company='SPX', date='2024-05-02', strike=4500):
-    ticker = yf.Ticker(company)
+    ticker = yf_ticker(company)
     option_chain = ticker.option_chain(date)
    
     call_data = option_chain.calls[option_chain.calls['strike'] == strike]
@@ -48,7 +48,7 @@ def get_historical_data(ticker, start_date):
         return None
 
 def get_stock_price(symbol, start_date, end_date):
-    stock = yf.Ticker(symbol)
+    stock = yf_ticker(symbol)
     hist = stock.history(start=start_date, end=end_date)
     hist.reset_index(inplace=True)
     hist['date'] = hist['Date'].dt.date
@@ -57,7 +57,7 @@ def get_stock_price(symbol, start_date, end_date):
     return hist[['date', 'stock_close_price']]
 
 def calls_and_puts(company='SPX', date='2024-05-02', strike=4500):
-    ticker = yf.Ticker(company)
+    ticker = yf_ticker(company)
     option_chain = ticker.option_chain(date)
   
     
@@ -74,7 +74,7 @@ def calls_and_puts(company='SPX', date='2024-05-02', strike=4500):
     
 def main(company='^SPX', date='2024-08-16', strike=4700, trade_date='2024-07-01'):
     # Fetch ticker information
-    ticker = yf.Ticker(company)
+    ticker = yf_ticker(company)
     option_chain = ticker.option_chain(date)
   
     

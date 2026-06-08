@@ -1,7 +1,7 @@
 from datetime import datetime
 import pytz
 import pandas as pd
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 import holidays
 import pytz
 import requests
@@ -52,7 +52,7 @@ def get_historical_data(ticker, start_date):
         return None, f"Failed to retrieve data: {response.status_code}"
 
 def get_stock_price(symbol, start_date, end_date):
-    stock = yf.Ticker(symbol)
+    stock = yf_ticker(symbol)
     hist = stock.history(start=start_date, end=end_date)
     hist.reset_index(inplace=True)
     hist['date'] = hist['Date'].dt.date

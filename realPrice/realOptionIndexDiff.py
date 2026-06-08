@@ -1,7 +1,7 @@
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 
 def get_option_chain(company, date, strike):
-    ticker = yf.Ticker(company)
+    ticker = yf_ticker(company)
     option_chain = ticker.option_chain(date)
    
     call_data = option_chain.calls[option_chain.calls['strike'] == strike]
@@ -14,7 +14,7 @@ def get_option_chain(company, date, strike):
         return None
 def main(company, date, strike):
     # Fetch ticker information
-    ticker = yf.Ticker(company)
+    ticker = yf_ticker(company)
 
     try:
         option_chain = ticker.option_chain(date)

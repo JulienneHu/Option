@@ -1,4 +1,4 @@
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 import pandas as pd
 from datetime import datetime, timedelta
 import requests
@@ -37,7 +37,7 @@ def get_historical_data(ticker, start_date):
 
 def calls_or_puts(company, date, strike):
     options = [] 
-    ticker = yf.Ticker(company)
+    ticker = yf_ticker(company)
     expiration_dates = ticker.options
 
     if date in expiration_dates:
@@ -64,7 +64,7 @@ def calls_or_puts(company, date, strike):
     return options
 
 def get_stock_price(symbol, start_date, end_date):
-    stock = yf.Ticker(symbol)
+    stock = yf_ticker(symbol)
     hist = stock.history(start=start_date, end=end_date)
     hist.reset_index(inplace=True)
     hist['date'] = hist['Date'].dt.date

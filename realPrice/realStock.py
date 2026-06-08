@@ -1,4 +1,4 @@
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 from datetime import datetime
 import holidays
 import pytz
@@ -6,7 +6,7 @@ import logging
 
 def get_realtime_stock_price(stock_name):
     try:
-        stock = yf.Ticker(stock_name)
+        stock = yf_ticker(stock_name)
 
         data = stock.history(period="1d", interval="1m")
         if data.empty:

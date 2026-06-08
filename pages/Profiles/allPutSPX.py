@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 from datetime import datetime
 
 
@@ -37,7 +37,7 @@ stock_range = col12.number_input("Stock Range (%)", value=0.25)
 # --- Fetch Data & Display ---
 if st.button("Fetch Data & Plot"):
     try:
-        ticker = yf.Ticker(symbol)
+        ticker = yf_ticker(symbol)
         live_price = ticker.history(period="1d")['Close'].iloc[-1]
 
         # Fetch put options

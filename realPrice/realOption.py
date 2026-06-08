@@ -122,7 +122,7 @@
 # def calls_or_puts(company, date, strike):
 #     call_symbol = None
 #     put_symbol = None
-#     ticker = yf.Ticker(company)
+#     ticker = yf_ticker(company)
 #     expiration_dates = ticker.options
 
 #     if date in expiration_dates:
@@ -153,7 +153,7 @@
 #     return res
 
 # def getIndexOption(symbol, ticker):
-#     info = yf.Ticker(symbol)
+#     info = yf_ticker(symbol)
 #     option_syb = ticker[:next((i for i, char in enumerate(ticker) if char.isdigit()), None)]
 #     length = len(option_syb)
 #     date = ticker[length:length + 6]
@@ -186,7 +186,7 @@
 # # get_realtime_option_price('AAPL2518G190')
 # # get_realtime_option_price('AAPL2518S190')
 
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 from datetime import datetime
 import holidays
 import pytz
@@ -201,7 +201,7 @@ def get_realtime_option_price(option_name):
     bid_price = None
     today = datetime.today()
     company = option_name[:next((i for i, char in enumerate(option_name) if char.isdigit()), None)]
-    comp_info = yf.Ticker(company)
+    comp_info = yf_ticker(company)
     
     length = len(company)
     date = option_name[length:length + 6]
@@ -233,7 +233,7 @@ def get_realtime_option_price(option_name):
 
 def calls_or_puts(company, date, strike):
     options = [] 
-    ticker = yf.Ticker(company)
+    ticker = yf_ticker(company)
     expiration_dates = ticker.options
 
     if date in expiration_dates:
@@ -270,7 +270,7 @@ def main(company, date, strike):
     return res
 
 def getIndexOption(symbol, ticker):
-    info = yf.Ticker(symbol)
+    info = yf_ticker(symbol)
     option_syb = ticker[:next((i for i, char in enumerate(ticker) if char.isdigit()), None)]
     length = len(option_syb)
     date = ticker[length:length + 6]

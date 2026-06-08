@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 import plotly.graph_objects as go
 from datetime import datetime
 import hashlib
@@ -71,7 +71,7 @@ if submitted:
             # Auto-fill stock_trade_price
             if stock_trade_price in [0, None]:
                 try:
-                    ticker = yf.Ticker(symbol)
+                    ticker = yf_ticker(symbol)
                     # end date to be 5 days after trade_date to ensure we get the correct open price
                     end_date = (datetime.strptime(trade_date, '%Y-%m-%d') + pd.Timedelta(days=5)).strftime('%Y-%m-%d')
                     df_hist = ticker.history(start=trade_date, end=end_date)

@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import hashlib
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 from realPrice.IndexPnl import main, get_option_chain, calls_and_puts
 from realPrice.realOption import getIndexOption
 from tools.pnl_tools import calculate_pnl, market_open
@@ -24,12 +24,12 @@ if 'trades' not in st.session_state:
 with st.form("Trade Input"):
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        trade_date_input = st.date_input("Trade Date", datetime(2026, 1, 1))
+        trade_date_input = st.date_input("Trade Date", datetime(2026, 5, 19))
         trade_date = trade_date_input.strftime('%Y-%m-%d')
         symbol = st.text_input("Symbol", '^SPX')
-        strike = st.number_input("Strike Price", value=5900.0, step=1.0, format="%.2f")
+        strike = st.number_input("Strike Price", value=7300.0, step=1.0, format="%.2f")
     with col2:
-        expiration_input = st.date_input("Expiration Date", datetime(2026, 2, 20))
+        expiration_input = st.date_input("Expiration Date", datetime(2026, 6, 18))
         expiration = expiration_input.strftime('%Y-%m-%d')
         stock_trade_price = st.number_input("Stock Trade Price", value=0.0, step=1.0, format="%.2f")
         effective_delta = st.number_input("Effective Delta", value=0.0, step=0.01, format="%.2f")
@@ -67,7 +67,7 @@ if submitted:
                 first_valid_stock_close = first_valid_row['stock_close_price']
                 if stock_trade_price in [0, 0.0, None]:
                     try:
-                        ticker = yf.Ticker(symbol)
+                        ticker = yf_ticker(symbol)
                         trade_date = pd.to_datetime(first_valid_date)
                         next_day = (trade_date + timedelta(days=5)).strftime('%Y-%m-%d')
                         df_hist = ticker.history(start=trade_date, end=next_day)

@@ -2,6 +2,7 @@ from time import sleep
 import streamlit as st
 from datetime import datetime, date
 import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 from realPrice.realStock import get_realtime_stock_price
 from tools.BsCal import BlackScholes
 
@@ -52,7 +53,7 @@ def generate_option_ticker(base, expiry_date, cp_flag, strike):
 # --- Utility: Verify Existence ---
 def verify_ticker_exists(ticker):
     try:
-        info = yf.Ticker(ticker).info
+        info = yf_ticker(ticker).info
         # Some tickers may return {'quoteType': 'OPTION'} even if valid
         return 'regularMarketPrice' in info or 'lastPrice' in info or 'openInterest' in info
     except Exception:
@@ -103,10 +104,10 @@ if fetch_btn:
 
     # If tickers found, fetch and display
     if call_ticker and put_ticker:
-        call_data = yf.Ticker(call_ticker).history(period="30d")
+        call_data = yf_ticker(call_ticker).history(period="30d")
         print(call_data.tail(1))
         sleep(1)  # To avoid hitting API limits
-        put_data = yf.Ticker(put_ticker).history(period="30d")
+        put_data = yf_ticker(put_ticker).history(period="30d")
 
         col_call, col_put = st.columns(2)
         with col_call:

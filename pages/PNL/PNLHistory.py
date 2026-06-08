@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import hashlib
-import yfinance as yf
+from tools.yf_session import Ticker as yf_ticker
 from tools.pnl_tools import calculate_pnl, get_ticker, get_pnl
 
 st.title("📘 Expired Option PNL Tracker")
@@ -53,7 +53,7 @@ if submitted:
     # Fetch stock open price if input = 0
     if stock_trade_price == 0.0:
         try:
-            ticker = yf.Ticker(symbol)
+            ticker = yf_ticker(symbol)
             next_day = (trade_date_input + timedelta(days=5)).strftime('%Y-%m-%d')
             df_hist = ticker.history(start=trade_date, end=next_day)
             if not df_hist.empty:
